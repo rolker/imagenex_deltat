@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 import struct
-import math
+import datetime
+
 
 
 class Ping:
@@ -9,11 +10,11 @@ class Ping:
     data_size = len(data)
     if data_size > 6:
       self.marker, self.version, self.packet_size = struct.unpack('>3sBH', data[:6])
-      print (self.packet_size)
+      #print (self.packet_size)
       self.date = struct.unpack('>11s', data[8:19])[0]
       self.time = struct.unpack('>8s', data[20:28])[0]
-      self.seconds = struct.unpack('>3s', data[29:32])[0]
-      print (self.date, self.time, self.seconds)
+      self.deciseconds = struct.unpack('>3s', data[29:32])[0]
+      #print (self.date, self.time, self.deciseconds)
       self.beam_count = struct.unpack('>H', data[70:72])[0]
       self.samples_per_beam = struct.unpack('>H', data[72:74])[0]
       self.sector_size = struct.unpack('>H', data[74:76])[0]
@@ -25,10 +26,10 @@ class Ping:
       self.range_resolution = struct.unpack('>H', data[85:87])[0]/1000.0
       self.tilt_angle = struct.unpack('>H', data[89:91])[0]-180
       self.ping_period = struct.unpack('>H', data[91:93])[0]/1000.0
-      print('beam count:', self.beam_count, 'samples:', self.samples_per_beam, 'sector size (deg):', self.sector_size, 'start angle:', self.start_angle, "angle inc:", self.angle_increment, 'range:', self.range, 'freq:', self.frequency, 'ss:', self.sound_speed, 'resolution:', self.range_resolution, 'tilt', self.tilt_angle, 'ping period:', self.ping_period)
+      #print('beam count:', self.beam_count, 'samples:', self.samples_per_beam, 'sector size (deg):', self.sector_size, 'start angle:', self.start_angle, "angle inc:", self.angle_increment, 'range:', self.range, 'freq:', self.frequency, 'ss:', self.sound_speed, 'resolution:', self.range_resolution, 'tilt', self.tilt_angle, 'ping period:', self.ping_period)
 
       self.ping_number = struct.unpack('>I', data[93:97])[0]
-      self.ping_ms = struct.unpack('>4s', data[112:116])
+      self.ping_ms = struct.unpack('>4s', data[112:116])[0]
       self.ping_has_intensity = struct.unpack('>B', data[117:118])[0]
       self.ping_latency = struct.unpack('>H', data[118:120])[0]/10000.0
       self.data_latency = struct.unpack('>H', data[120:122])[0]/10000.0
@@ -36,26 +37,40 @@ class Ping:
       self.options = struct.unpack('>B', data[123:124])[0]
       self.ping_average_count = struct.unpack('>B', data[125:126])[0]
       self.center_ping_time_offset = struct.unpack('>H', data[126:128])[0]/10000.0
-      print('ping:', self.ping_number, "ms:", self.ping_ms, "intensity?", self.ping_has_intensity, 'ping latency:', self.ping_latency, 'data latency:', self.data_latency, 'hi res?', self.high_resolution, 'options:', self.options, 'no of avg pings', self.ping_average_count, 'ctr ping time off:', self.center_ping_time_offset)
+      #print('ping:', self.ping_number, "ms:", self.ping_ms, "intensity?", self.ping_has_intensity, 'ping latency:', self.ping_latency, 'data latency:', self.data_latency, 'hi res?', self.high_resolution, 'options:', self.options, 'no of avg pings', self.ping_average_count, 'ctr ping time off:', self.center_ping_time_offset)
 
       self.altitude = struct.unpack('<f', data[133:137])[0]
       self.auto_scan = struct.unpack('>B', data[150:151])[0]
       self.transmit_scan_angle = struct.unpack('<f', data[151:155])[0]
-      print('altitude', self.altitude, 'auro scan?', self.auto_scan, 'transmit scan angle', self.transmit_scan_angle)
+      #print('altitude', self.altitude, 'auro scan?', self.auto_scan, 'transmit scan angle', self.transmit_scan_angle)
 
-      self.ranges = struct.unpack('<'+str(self.beam_count)+'H', data[256:(256+2*self.beam_count)])
+      self.ranges = struct.unpack('>'+str(self.beam_count)+'H', data[256:(256+2*self.beam_count)])
+      #print(self.ranges)
       self.range_meters = []
       for r in self.ranges:
         self.range_meters.append(r*self.range_resolution)
-      print(self.range_meters)
+      #print(self.range_meters)
 
       if self.ping_has_intensity:
-        self.intensities = struct.unpack('<'+str(self.beam_count)+'H', data[256+(2*self.beam_count):256+(4*self.beam_count)])
-        print(self.intensities)
+        self.intensities = struct.unpack('>'+str(self.beam_count)+'H', data[256+(2*self.beam_count):256+(4*self.beam_count)])
+        #print(self.intensities)
+      else:
+        self.intensities = None
 
-      for i in range(self.beam_count):
-        angle = self.start_angle+i*self.angle_increment
-        radians = math.radians(angle)
-        c = math.cos(radians)
-        depth = c*self.range_meters[i]
-        print(i, self.start_angle+i*self.angle_increment, depth)
+      # for i in range(self.beam_count):
+      #   angle = self.start_angle+i*self.angle_increment
+      #   radians = math.radians(angle)
+      #   c = math.cos(radians)
+      #   depth = c*self.range_meters[i]
+      #   print(i, self.start_angle+i*self.angle_increment, depth)
+
+  def timestamp(self):
+    day = int(self.date[0:2])
+    month = {"JAN":1, "FEB":2, "MAR":3, "APR":4, "MAY":5, "JUN":6, "JUL":7, "AUG":8, "SEP":9, "OCT":10, "NOV":11, "DEC":12}[self.date[3:6].decode()]
+    year = int(self.date[7:11])
+    hour = int(self.time[0:2])
+    minute = int(self.time[3:5])
+    seconds = int(self.time[6:8])
+
+    ms = float(self.ping_ms)
+    return datetime.datetime(year, month, day, hour, minute, seconds, int(ms*1000000), tzinfo=datetime.timezone.utc)

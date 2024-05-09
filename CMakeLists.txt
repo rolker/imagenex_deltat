@@ -5,7 +5,7 @@ project(imagenex_deltat)
 add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
-  marine_acoustic_msgs
+  sensor_msgs
   rospy
 )
 
@@ -14,7 +14,7 @@ catkin_python_setup()
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES posmv
-   CATKIN_DEPENDS marine_acoustic_msgs rospy
+   CATKIN_DEPENDS sensor_msgs rospy
 #  DEPENDS system_lib
 )
 
