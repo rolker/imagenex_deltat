@@ -27,6 +27,9 @@ class NetworkListener:
     self.s.settimeout(0.1)
     self.s.bind(('', 4040))
 
+    self.out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+
   def run(self):
     while True:
       if rospy.is_shutdown():
@@ -34,6 +37,7 @@ class NetworkListener:
       try:
         data, addr = self.s.recvfrom(2048)
         #print (data)
+        self.out.sendto(data, ('192.168.12.8', 4040))
         format = '>3sBH2x11sx8sx3sx13sx13sxBHHHHHHHHBH'
         format_size = struct.calcsize(format)
         if len(data) >= format_size:
@@ -41,32 +45,34 @@ class NetworkListener:
           #print(parts)
         p = imagenex.Ping(data)
 
-        points = []
-        for i in range(len(p.ranges)):
-          if p.intensities is None or p.intensities[i] > 0:
-            angle = p.start_angle+i*p.angle_increment
-            radians = math.radians(angle)
-            c = math.cos(radians)
-            depth = c*p.range_meters[i]
-            s = math.sin(radians)
-            yoffset = s*p.range_meters[i]
-            intensity = 1.0
-            if p.intensities is not None:
-              intensity *= p.intensities[i]
-            points.append((0.0, yoffset, depth, intensity))
+        if p.marker.decode() == '83P':
 
-        fields = [PointField('x', 0, PointField.FLOAT32, 1),
-          PointField('y', 4, PointField.FLOAT32, 1),
-          PointField('z', 8, PointField.FLOAT32, 1),
-          PointField('i', 12, PointField.FLOAT32, 1),
-          ]
+          points = []
+          for i in range(len(p.ranges)):
+            if p.intensities is None or p.intensities[i] > 0:
+              angle = p.start_angle+i*p.angle_increment
+              radians = math.radians(angle)
+              c = math.cos(radians)
+              depth = c*p.range_meters[i]
+              s = math.sin(radians)
+              yoffset = s*p.range_meters[i]
+              intensity = 1.0
+              if p.intensities is not None:
+                intensity *= p.intensities[i]
+              points.append((0.0, yoffset, depth, intensity))
 
-        header = Header()
-        header.frame_id = frame_id
-        #print(p.timestamp())
-        header.stamp = rospy.Time.from_sec(p.timestamp().timestamp())
-        pc2 = point_cloud2.create_cloud(header, fields, points)
-        pub.publish(pc2)
+          fields = [PointField('x', 0, PointField.FLOAT32, 1),
+            PointField('y', 4, PointField.FLOAT32, 1),
+            PointField('z', 8, PointField.FLOAT32, 1),
+            PointField('i', 12, PointField.FLOAT32, 1),
+            ]
+
+          header = Header()
+          header.frame_id = frame_id
+          #print(p.timestamp())
+          header.stamp = rospy.Time.from_sec(p.timestamp().timestamp())
+          pc2 = point_cloud2.create_cloud(header, fields, points)
+          pub.publish(pc2)
 
 
       except socket.timeout:
