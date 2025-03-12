@@ -1,20 +1,18 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.5.1)
 project(imagenex_deltat)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 
-find_package(catkin REQUIRED COMPONENTS
-  sensor_msgs
-  rospy
-)
+find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_python REQUIRED)
 
-catkin_python_setup()
+ament_python_install_package(${PROJECT_NAME})
 
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES posmv
-   CATKIN_DEPENDS sensor_msgs rospy
-#  DEPENDS system_lib
-)
+install(PROGRAMS nodes/deltat.py DESTINATION lib/${PROJECT_NAME})
 
+ament_package()
