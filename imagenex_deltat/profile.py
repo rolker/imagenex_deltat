@@ -1,8 +1,4 @@
-#!/usr/bin/env python3
-
 import struct
-import datetime
-
 
 
 class Ping:
@@ -99,16 +95,3 @@ class Ping:
         print('beam count:', self.beam_count, 'samples:', self.samples_per_beam, 'sector size (deg):', self.sector_size, 'start angle:', self.start_angle, "angle inc:", self.angle_increment, 'range:', self.range, 'freq:', self.frequency, 'ss:', self.sound_speed, 'resolution:', self.range_resolution, 'pulse length', self.pulse_length,'tilt', self.tilt_angle, 'ping period:', self.ping_period)
         self.ping_number = struct.unpack('>I', data[93:97])[0]
         print('ping number', self.ping_number)
-
-
-
-  def timestamp(self):
-    day = int(self.date[0:2])
-    month = {"JAN":1, "FEB":2, "MAR":3, "APR":4, "MAY":5, "JUN":6, "JUL":7, "AUG":8, "SEP":9, "OCT":10, "NOV":11, "DEC":12}[self.date[3:6].decode()]
-    year = int(self.date[7:11])
-    hour = int(self.time[0:2])
-    minute = int(self.time[3:5])
-    seconds = int(self.time[6:8])
-
-    ms = float(self.ping_ms)
-    return datetime.datetime(year, month, day, hour, minute, seconds, int(ms*1000000), tzinfo=datetime.timezone.utc)

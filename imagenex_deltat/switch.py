@@ -1,4 +1,10 @@
-import struct
+
+
+from struct import pack
+from .utils import code_to_frequency
+from .utils import code_to_range
+from .utils import frequency_to_code
+
 
 class SwitchData:
     """
@@ -17,32 +23,29 @@ class SwitchData:
     switch_data_header_2 = 0x44 # byte 1, 68 decimal
     head_id = 0x10 # byte 2
 
-
-    # Maps valid range requests in meters to value to use in the
-    # Switch Data packet. byte 3 
-    range_table = {
-        5:5,
-        10:10,
-        20:20,
-        30:30,
-        40:40,
-        50:50,
-        60:60,
-        80:80,
-        100:100,
-        150:150,
-        200:200,
-        250:201,
-        300:202
-    }
-
-
     # byte 10, absorption in hundreds of dB/m, range 0 to 2.55dB/m
-    default_absorptions = {
+    frequency_to_default_absorptions = {
         120000: 3,
         260000: 10,
         675000: 20,
         1700000: 170
+    }
+
+    # byte 14, range in meters to pulse lenth code us/10
+    recomended_pulse_lengths_by_range = {
+        5:3,
+        10:6,
+        20:12,
+        30:18,
+        40:24,
+        50:30,
+        60:36,
+        80:48,
+        100:60,
+        150:90,
+        200:120,
+        250:150,
+        300:180
     }
 
     # byte 20, resolution in bits.
@@ -53,19 +56,12 @@ class SwitchData:
     tvg_disabled_bit =      0b00000010
     auto_gain_bit =         0b00010000
 
-    # byte 25, frequency in hz to byte code
-    frequency_table = {
-        120000: 58,
-        260000: 86,
-        675000: 169,
-        1700000: 68
-    }
 
     # byte 26, termination byte (253 decimal)
     termination_byte = 0xFD
 
-    def __init__(self):
-        
+    def __init__(self, frequency=260000):
+        self._range = 5
         
         # used in bytes 5-6 when using automatic gain control
         # should consist of physical mounting offset and/or roll angle
@@ -73,6 +69,8 @@ class SwitchData:
         
         # 0 to 20dB in 1dB increments
         self._start_gain = 0
+
+        self._absorption = self.frequency_to_default_absorptions[frequency]
 
         # "When using Automatic Gain Control (Byte 22, Bit 4), this number
         # is used as a set point for adjusting the internal hardware gain
@@ -88,7 +86,7 @@ class SwitchData:
 
         # Number of data points to return in thousounds. 8 or 16 for 8000
         # or 16000
-        self._data_points = 16
+        self._data_points = 8
 
         # byte 21, commands for the optional internal pitch/roll/heading 
         # sensor
@@ -124,7 +122,49 @@ class SwitchData:
         self._switch_delay = 0
 
         # byte 25
-        self._frequency = SwitchData.frequency_table[260000]
+        self._frequency = frequency_to_code[frequency]
 
-        
+    def get_ping_requests(self):
+        ret = []
+        if self._pulse_length_override is None:
+            pulse_length_code = self.recomended_pulse_lengths_by_range[code_to_range[self._range]]
+        else:
+            pulse_length_code = self._pulse_length_override
 
+        run_mode = 0
+        if self._transmit_disabled:
+            run_mode |= self.transmit_disabled_bit
+        if self._tvg_disabled:
+            run_mode |= self.tvg_disabled_bit
+        if self._auto_gain_enabled:
+            run_mode |= self.auto_gain_bit
+        for i in range(self._data_points):
+            ret.append(pack(
+                '>BBBBBHBBBBBBBBBBHBBBBBBBB',
+                self.switch_data_header_1,
+                self.switch_data_header_2,
+                self.head_id,
+                self._range,
+                0,
+                self._nadir_offset_angle,
+                0,
+                self._start_gain,
+                0,
+                self._absorption,
+                self._agc_threshold,
+                0,
+                i,
+                pulse_length_code,
+                0,
+                0, # external trigger control
+                0, # external trigger delay
+                self._data_points,
+                self.data_bits,
+                0, # prh command
+                run_mode,
+                0,
+                self._switch_delay,
+                self._frequency,
+                self.termination_byte
+            ))
+        return ret
