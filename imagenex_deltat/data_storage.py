@@ -43,7 +43,7 @@ class FileHeader837:
 
         sound_speed_bytes = unpack('>2B', data[i+46:i+48])
         if sound_speed_bytes[0]&0b10000000:
-            self.sound_speed = 15000.0
+            self.sound_speed = 1500.0
         else:
             self.sound_speed = ((sound_speed_bytes[0]&0x7F)<<8|(sound_speed_bytes[1]))/10.0
 
