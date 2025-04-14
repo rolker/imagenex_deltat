@@ -15,8 +15,9 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   nodes/deltat.py
-  nodes/deltat_driver.py
   DESTINATION lib/${PROJECT_NAME}
 )
+
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 
 ament_package()
