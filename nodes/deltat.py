@@ -127,7 +127,11 @@ class DeltaT(Node):
                                 intensity = 1.0
                                 if p.intensities is not None:
                                     intensity *= p.intensities[i]
-                                points.append((0.0, yoffset, depth, intensity))
+
+                                # quick hack to provide uncertainties
+                                v_uncertainty = max(0.1, depth*0.01)
+                                h_uncertainty = max(0.01, abs(yoffset*0.01))
+                                points.append((0.0, yoffset, depth, intensity, v_uncertainty, h_uncertainty))
 
                         fields = [
                             PointField(
@@ -151,6 +155,18 @@ class DeltaT(Node):
                             PointField(
                                 name = 'i',
                                 offset = 12,
+                                datatype = PointField.FLOAT32,
+                                count =  1
+                            ),
+                            PointField(
+                                name = 'vertical_uncertainty',
+                                offset = 16,
+                                datatype = PointField.FLOAT32,
+                                count =  1
+                            ),
+                            PointField(
+                                name = 'horizontal_uncertainty',
+                                offset = 20,
                                 datatype = PointField.FLOAT32,
                                 count =  1
                             ),
