@@ -42,7 +42,7 @@ class SonarReturnData(SonarReturnDataHeaderCommon):
     prh_sensor_status_table = {
         0:'no sensor installed',
         1:'PRH sensor installed (837A)',
-        2:'PRH sensor installed (837B, signs reveresed)',
+        2:'PRH sensor installed (837B, signs reversed)',
         5:'PRH sensor installed (837)'
     }
 
@@ -94,7 +94,7 @@ class SonarReturnData(SonarReturnDataHeaderCommon):
         termination_byte = unpack('>B', data[i:i+1])[0]
         if termination_byte != 0xFC:
             raise ValueError(
-                f'expected terminiation byte 0xFC but got 0x {termination_byte:02x}'
+                f'expected termination byte 0xFC but got 0x {termination_byte:02x}'
             )
 
 
